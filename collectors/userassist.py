@@ -11,7 +11,6 @@ def filetime_to_datetime(filetime):
 
 
 def rot13_decode(s):
-    """Decode ROT13 encoded string."""
     result = []
     for char in s:
         if 'A' <= char <= 'Z':
@@ -34,7 +33,6 @@ class UserAssistCollector:
             key_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\UserAssist"
 
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as userassist_key:
-                # First check the main UserAssist key for values
                 value_index = 0
                 while True:
                     try:
@@ -44,9 +42,6 @@ class UserAssistCollector:
                         if value_type != winreg.REG_BINARY or not isinstance(value_data, bytes) or len(value_data) < 16:
                             continue
 
-                        # Parse UserAssist data
-                        # Try different possible structures
-                        # Structure 1: 4 bytes unknown, 4 bytes count, 8 bytes time, 4 bytes unknown
                         if len(value_data) >= 16:
                             execution_count = int.from_bytes(value_data[4:8], byteorder='little')
                             last_execution_filetime = int.from_bytes(value_data[8:16], byteorder='little')
@@ -70,7 +65,6 @@ class UserAssistCollector:
                     except OSError:
                         break
 
-                # Then check subkeys
                 subkey_index = 0
                 while True:
                     try:
@@ -85,15 +79,12 @@ class UserAssistCollector:
                                     value_name, value_data, value_type = winreg.EnumValue(subkey, value_index)
                                     value_index += 1
 
-                                    # Skip metadata values
                                     if value_name.lower() in ['version', 'count']:
                                         continue
 
                                     if value_type != winreg.REG_BINARY or not isinstance(value_data, bytes) or len(value_data) < 16:
                                         continue
 
-                                    # Parse UserAssist data
-                                    # Try different possible structures
                                     execution_count = int.from_bytes(value_data[4:8], byteorder='little')
                                     last_execution_filetime = int.from_bytes(value_data[8:16], byteorder='little')
 
@@ -102,7 +93,6 @@ class UserAssistCollector:
 
                                     last_execution_time = filetime_to_datetime(last_execution_filetime)
 
-                                    # Decode the ROT13 encoded program name
                                     decoded_name = rot13_decode(value_name)
 
                                     event = Event(

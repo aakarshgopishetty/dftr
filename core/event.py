@@ -43,12 +43,6 @@ class Event:
 
     @property
     def sort_time(self) -> Optional[datetime]:
-        """
-        Time used for timeline ordering.
-        Priority:
-        - time_end
-        - time_start
-        """
         return self.time_end or self.time_start
 
     def __str__(self):
@@ -61,17 +55,15 @@ class Event:
             if self.time_end else "UNKNOWN"
         )
 
-        # Calculate correlation score
         correlation_score = ""
         if self.correlation_notes and "Corroborated by:" in self.correlation_notes:
-            # Extract sources from correlation notes
             sources_part = self.correlation_notes.split("Corroborated by:")[1].strip()
             sources = [s.strip() for s in sources_part.split(",")]
             correlation_score = f" | Correlation: {len(sources)}/4 artifacts"
         elif self.correlated:
-            correlation_score = " | Correlation: 2/4 artifacts"  # At least 2 for basic correlation
+            correlation_score = " | Correlation: 2/4 artifacts"
         else:
-            correlation_score = " | Correlation: 1/4 artifacts"  # Single source
+            correlation_score = " | Correlation: 1/4 artifacts"
 
         corr = ""
         if self.correlated:

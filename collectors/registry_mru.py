@@ -39,11 +39,7 @@ class RegistryMRUCollector:
                             event_type=EventType.USER_INTENT,
                             subject="User",
                             object=value_data,
-                            description=(
-                                "Command present in RunMRU "
-                                "(exact execution time unknown): "
-                                f"{value_data}"
-                            ),
+                            description=f"Command present in RunMRU (exact execution time unknown): {value_data}",
                             source=self.source,
                             confidence=ConfidenceLevel.MEDIUM
                         )

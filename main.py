@@ -18,7 +18,6 @@ def parse_datetime(value: str):
 
 
 def export_to_csv(events):
-    """Export timeline events to CSV file."""
     filename = "forensic_timeline.csv"
 
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
@@ -73,7 +72,6 @@ def main():
 
     print("\nFilter timeline by time range (optional)")
 
-    # Default to last 7 days if no input
     from datetime import timedelta
     default_start = datetime.now() - timedelta(days=7)
 
@@ -119,14 +117,12 @@ def main():
 
     events.sort(key=lambda e: e.sort_time or datetime.min, reverse=True)
 
-    # Show first 10 events as sample
     for event in events[:10]:
         print(event)
 
     if len(events) > 10:
         print(f"\n... and {len(events) - 10} more events")
 
-    # Ask user if they want CSV export
     csv_export = input("\nExport timeline to CSV file? (y/n): ").lower().strip() == 'y'
 
     if csv_export:
