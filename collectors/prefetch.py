@@ -93,7 +93,11 @@ class PrefetchCollector:
             if events:
                 logging.info(f"Collected {len(events)} Prefetch events")
 
+        except PermissionError:
+            logging.info("Prefetch collection skipped: Administrator privileges required to access C:\\Windows\\Prefetch")
+            return []
         except Exception as e:
-            logging.error(f"Failed to collect Prefetch artifacts: {e}")
+            logging.warning(f"Failed to collect Prefetch artifacts: {e}")
+            return []
 
         return events
