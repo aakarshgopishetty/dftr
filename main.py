@@ -92,13 +92,6 @@ def main():
     if len(events) > 10:
         print(f"\n... and {len(events) - 10} more events")
 
-    print("\n" + "="*80)
-    print("DISCLAIMER:")
-    print("This tool reconstructs probable user activity based on corroborated Windows artifacts.")
-    print("Timeline events represent high-confidence indicators, not absolute ground truth.")
-    print("Events are correlated across multiple sources when possible for increased accuracy.")
-    print("="*80)
-
 
 if __name__ == "__main__":
     main()
