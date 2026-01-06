@@ -83,7 +83,7 @@ def main():
 
     print("Timeline events shown using best-known timestamps (sort_time):\n")
 
-    events.sort(key=lambda e: e.sort_time or datetime.min)
+    events.sort(key=lambda e: e.sort_time or datetime.min, reverse=True)
 
     # Show first 10 events as sample
     for event in events[:10]:
