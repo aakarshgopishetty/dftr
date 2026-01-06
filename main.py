@@ -3,6 +3,7 @@ from datetime import datetime
 from collectors.recent_files import RecentFilesCollector
 from collectors.registry_mru import RegistryMRUCollector
 from collectors.userassist import UserAssistCollector
+from collectors.prefetch import PrefetchCollector
 
 from core.correlator import correlate_events
 from core.event import EventType
@@ -18,15 +19,19 @@ def parse_datetime(value: str):
 def main():
     events = []
 
-    print("Testing Recent Files, Registry MRU, and UserAssist Collectors")
+    print("Digital Forensic Timeline Reconstructor")
+    print("Collecting from: Recent Files, Registry MRU, UserAssist, Prefetch")
+    print("Features: Cross-artifact correlation, confidence scoring, user/system activity detection")
 
     recent_collector = RecentFilesCollector()
     mru_collector = RegistryMRUCollector()
     userassist_collector = UserAssistCollector()
+    prefetch_collector = PrefetchCollector()
 
     events.extend(recent_collector.collect())
     events.extend(mru_collector.collect())
     events.extend(userassist_collector.collect())
+    events.extend(prefetch_collector.collect())
 
     print(f"\nCollected {len(events)} total events")
 
@@ -86,6 +91,13 @@ def main():
 
     if len(events) > 10:
         print(f"\n... and {len(events) - 10} more events")
+
+    print("\n" + "="*80)
+    print("DISCLAIMER:")
+    print("This tool reconstructs probable user activity based on corroborated Windows artifacts.")
+    print("Timeline events represent high-confidence indicators, not absolute ground truth.")
+    print("Events are correlated across multiple sources when possible for increased accuracy.")
+    print("="*80)
 
 
 if __name__ == "__main__":
