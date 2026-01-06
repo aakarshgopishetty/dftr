@@ -61,10 +61,22 @@ class Event:
             if self.time_end else "UNKNOWN"
         )
 
+        # Calculate correlation score
+        correlation_score = ""
+        if self.correlation_notes and "Corroborated by:" in self.correlation_notes:
+            # Extract sources from correlation notes
+            sources_part = self.correlation_notes.split("Corroborated by:")[1].strip()
+            sources = [s.strip() for s in sources_part.split(",")]
+            correlation_score = f" | Correlation: {len(sources)}/4 artifacts"
+        elif self.correlated:
+            correlation_score = " | Correlation: 2/4 artifacts"  # At least 2 for basic correlation
+        else:
+            correlation_score = " | Correlation: 1/4 artifacts"  # Single source
+
         corr = ""
         if self.correlated:
             corr = f" | CORRELATED"
-            if self.correlation_notes:
+            if self.correlation_notes and "Corroborated by:" not in self.correlation_notes:
                 corr += f" ({self.correlation_notes})"
 
         return (
@@ -73,5 +85,6 @@ class Event:
             f"{self.description} | "
             f"{self.source} | "
             f"{self.confidence.value}"
+            f"{correlation_score}"
             f"{corr}"
         )
