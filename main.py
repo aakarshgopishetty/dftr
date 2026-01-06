@@ -1,3 +1,4 @@
+import csv
 from datetime import datetime
 
 from collectors.recent_files import RecentFilesCollector
@@ -14,6 +15,39 @@ def parse_datetime(value: str):
         return datetime.strptime(value, "%Y-%m-%d %H:%M")
     except ValueError:
         return None
+
+
+def export_to_csv(events):
+    """Export timeline events to CSV file."""
+    filename = "forensic_timeline.csv"
+
+    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+        fieldnames = [
+            'Timestamp',
+            'Event_Type',
+            'Subject',
+            'Object',
+            'Description',
+            'Source',
+            'Confidence',
+            'Correlated',
+            'Correlation_Notes'
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for event in events:
+            writer.writerow({
+                'Timestamp': event.sort_time.isoformat() if event.sort_time else 'UNKNOWN',
+                'Event_Type': event.event_type.value if event.event_type else 'UNKNOWN',
+                'Subject': event.subject,
+                'Object': event.object,
+                'Description': event.description,
+                'Source': event.source,
+                'Confidence': event.confidence.value,
+                'Correlated': 'Yes' if event.correlated else 'No',
+                'Correlation_Notes': event.correlation_notes or ''
+            })
 
 
 def main():
@@ -91,6 +125,13 @@ def main():
 
     if len(events) > 10:
         print(f"\n... and {len(events) - 10} more events")
+
+    # Ask user if they want CSV export
+    csv_export = input("\nExport timeline to CSV file? (y/n): ").lower().strip() == 'y'
+
+    if csv_export:
+        export_to_csv(events)
+        print("Timeline exported to 'forensic_timeline.csv'")
 
 
 if __name__ == "__main__":
