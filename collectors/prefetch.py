@@ -4,11 +4,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import List
 
-from core.event import Event, EventType, ConfidenceLevel
+from core.event import Event, EventType, Confidence
 
 class PrefetchCollector:
     def __init__(self):
         self.source = "Windows Prefetch"
+        self.requires_admin = True
 
     def collect(self) -> List[Event]:
         events = []
@@ -72,7 +73,7 @@ class PrefetchCollector:
                                 object=program_name,
                                 description=f"Program executed {run_count} times, last at {last_run_time} (Prefetch)",
                                 source=self.source,
-                                confidence=ConfidenceLevel.HIGH
+                                confidence=Confidence.HIGH
                             )
 
                             events.append(event)

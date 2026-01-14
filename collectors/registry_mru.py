@@ -3,7 +3,7 @@ import winreg
 from datetime import datetime, timedelta
 from typing import List
 
-from core.event import Event, EventType, ConfidenceLevel
+from core.event import Event, EventType, Confidence
 
 
 def filetime_to_datetime(filetime):
@@ -41,7 +41,7 @@ class RegistryMRUCollector:
                             object=value_data,
                             description=f"Command present in RunMRU (exact execution time unknown): {value_data}",
                             source=self.source,
-                            confidence=ConfidenceLevel.MEDIUM
+                            confidence=Confidence.MEDIUM
                         )
 
                         events.append(event)

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from collections import defaultdict
-from core.event import EventType, ConfidenceLevel
+from core.event import EventType, Confidence
 
 TIME_WINDOW = timedelta(minutes=5)
 
@@ -57,7 +57,7 @@ def calculate_confidence(event, related_events):
 
     event_time = event.sort_time
     if not event_time:
-        return ConfidenceLevel.LOW
+        return Confidence.LOW
 
     for related_event in related_events:
         if related_event.source != event.source:
@@ -68,11 +68,11 @@ def calculate_confidence(event, related_events):
             time_agreements += 1
 
     if len(sources) >= 2 and time_agreements >= 1:
-        return ConfidenceLevel.HIGH
+        return Confidence.HIGH
     elif len(sources) >= 1 or time_agreements >= 1:
-        return ConfidenceLevel.MEDIUM
+        return Confidence.MEDIUM
     else:
-        return ConfidenceLevel.LOW
+        return Confidence.LOW
 
 def correlate_events(events):
     name_groups = defaultdict(list)
@@ -109,8 +109,8 @@ def correlate_events(events):
             related_events = [e for e in program_events if e != event]
             new_confidence = calculate_confidence(event, related_events)
 
-            if (event.confidence == ConfidenceLevel.LOW and new_confidence in [ConfidenceLevel.MEDIUM, ConfidenceLevel.HIGH]) or \
-               (event.confidence == ConfidenceLevel.MEDIUM and new_confidence == ConfidenceLevel.HIGH):
+            if (event.confidence == Confidence.LOW and new_confidence in [Confidence.MEDIUM, Confidence.HIGH]) or \
+               (event.confidence == Confidence.MEDIUM and new_confidence == Confidence.HIGH):
                 event.confidence = new_confidence
 
             if len(set(e.source for e in program_events)) > 1:

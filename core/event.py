@@ -10,7 +10,7 @@ class EventType(Enum):
     SYSTEM_EVENT = "SYSTEM_EVENT"
 
 
-class ConfidenceLevel(Enum):
+class Confidence(Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
@@ -26,7 +26,7 @@ class Event:
         object: str = "",
         description: str = "",
         source: str = "",
-        confidence: ConfidenceLevel = ConfidenceLevel.LOW,
+        confidence: Confidence = Confidence.LOW,
         correlated: bool = False,
         correlation_notes: Optional[str] = None
     ):

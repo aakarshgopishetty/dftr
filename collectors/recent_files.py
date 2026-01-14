@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from typing import List
 
-from core.event import Event, EventType, ConfidenceLevel
+from core.event import Event, EventType, Confidence
 
 class RecentFilesCollector:
 
@@ -34,7 +34,7 @@ class RecentFilesCollector:
                     object=filename,
                     description=f"Recent file reference: {filename}",
                     source=self.source,
-                    confidence=ConfidenceLevel.LOW
+                    confidence=Confidence.LOW
                 )
 
                 events.append(event)

@@ -3,7 +3,7 @@ import winreg
 from datetime import datetime, timedelta
 from typing import List
 
-from core.event import Event, EventType, ConfidenceLevel
+from core.event import Event, EventType, Confidence
 
 
 def filetime_to_datetime(filetime):
@@ -58,7 +58,7 @@ class UserAssistCollector:
                                     object=decoded_name,
                                     description=f"Program executed {execution_count} times, last at {last_execution_time}",
                                     source=self.source,
-                                    confidence=ConfidenceLevel.HIGH
+                                    confidence=Confidence.HIGH
                                 )
                                 events.append(event)
 
@@ -103,7 +103,7 @@ class UserAssistCollector:
                                         object=decoded_name,
                                         description=f"Program executed {execution_count} times, last at {last_execution_time}",
                                         source=self.source,
-                                        confidence=ConfidenceLevel.HIGH
+                                        confidence=Confidence.HIGH
                                     )
 
                                     events.append(event)
