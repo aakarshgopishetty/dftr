@@ -2,13 +2,19 @@ import csv
 import ctypes
 from datetime import datetime
 
-from collectors.recent_files import RecentFilesCollector
-from collectors.registry_mru import RegistryMRUCollector
-from collectors.userassist import UserAssistCollector
-from collectors.prefetch import PrefetchCollector
-from collectors.file_metadata import FileMetadataCollector
-from collectors.browser_downloads import BrowserDownloadsCollector
-from collectors.firefox_downloads import FirefoxDownloadsCollector
+from collectors.filesystem.recent_files import RecentFilesCollector
+from collectors.applications.registry_mru import RegistryMRUCollector
+from collectors.applications.userassist import UserAssistCollector
+from collectors.system.prefetch import PrefetchCollector
+from collectors.system.clipboard import ClipboardCollector
+from collectors.system.usb import USBCollector
+from collectors.filesystem.file_metadata import FileMetadataCollector
+from collectors.browser.browser_downloads import BrowserDownloadsCollector
+from collectors.browser.firefox_downloads import FirefoxDownloadsCollector
+from collectors.filesystem.jump_lists import JumpListsCollector
+from collectors.browser.browser_history import BrowserHistoryCollector
+
+from analysis.non_browser_downloads import NonBrowserDownloadAnalyzer
 
 from core.correlator import correlate_events
 from core.event import EventType
@@ -67,11 +73,11 @@ def main():
     print("Select operation mode:")
     print("1. Standard Mode (No admin privileges required)")
     print("   - Collects user-accessible artifacts")
-    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads")
+    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History")
     print()
     print("2. Enhanced Mode (Requires administrator privileges)")
     print("   - Includes all Standard Mode artifacts")
-    print("   - Plus system-level artifacts (Prefetch)")
+    print("   - Plus system-level artifacts (Prefetch, USB events)")
     print()
 
     while True:
@@ -105,11 +111,15 @@ def main():
         UserAssistCollector(),
         FileMetadataCollector(),
         BrowserDownloadsCollector(),
-        FirefoxDownloadsCollector()
+        FirefoxDownloadsCollector(),
+        JumpListsCollector(),
+        BrowserHistoryCollector(),
+        ClipboardCollector()
     ]
 
     if enable_prefetch:
         collectors.append(PrefetchCollector())
+        collectors.append(USBCollector())
 
     collector_names = [type(c).__name__.replace('Collector', '') for c in collectors]
     print(f"Collecting from: {', '.join(collector_names)}")
@@ -121,8 +131,6 @@ def main():
     print(f"\nCollected {len(all_events)} total events")
 
     all_events = correlate_events(all_events)
-
-    display_events = list(all_events)
 
     print("\nFilter timeline by time range (optional)")
 
@@ -140,6 +148,15 @@ def main():
         start_time = parse_datetime(start_input)
 
     end_time = parse_datetime(end_input) if end_input else None
+
+    # Run non-browser download analysis with time filter
+    analyzer = NonBrowserDownloadAnalyzer()
+    inferred_events = analyzer.analyze(all_events, start_time, end_time)
+    if inferred_events:
+        all_events.extend(inferred_events)
+        print(f"Added {len(inferred_events)} inferred non-browser download events")
+
+    display_events = list(all_events)
 
     filtered_events = []
 
