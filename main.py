@@ -7,7 +7,6 @@ from collectors.applications.registry_mru import RegistryMRUCollector
 from collectors.applications.userassist import UserAssistCollector
 from collectors.system.prefetch import PrefetchCollector
 from collectors.system.clipboard import ClipboardCollector
-from collectors.system.usb import USBCollector
 from collectors.filesystem.file_metadata import FileMetadataCollector
 from collectors.browser.browser_downloads import BrowserDownloadsCollector
 from collectors.browser.firefox_downloads import FirefoxDownloadsCollector
@@ -77,7 +76,7 @@ def main():
     print()
     print("2. Enhanced Mode (Requires administrator privileges)")
     print("   - Includes all Standard Mode artifacts")
-    print("   - Plus system-level artifacts (Prefetch, USB events)")
+    print("   - Plus system-level artifacts (Prefetch)")
     print()
 
     while True:
@@ -119,7 +118,6 @@ def main():
 
     if enable_prefetch:
         collectors.append(PrefetchCollector())
-        collectors.append(USBCollector())
 
     collector_names = [type(c).__name__.replace('Collector', '') for c in collectors]
     print(f"Collecting from: {', '.join(collector_names)}")
