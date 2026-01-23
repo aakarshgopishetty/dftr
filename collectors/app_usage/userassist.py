@@ -115,7 +115,6 @@ class UserAssistCollector:
                                 last_execution_time = filetime_to_datetime(last_execution_filetime)
                                 decoded_name = rot13_decode(value_name)
 
-                                # Categorize application and generate smart description
                                 category = self._categorize_application(decoded_name)
                                 smart_description = self._generate_smart_description(
                                     decoded_name, category, execution_count, last_execution_time
@@ -166,7 +165,6 @@ class UserAssistCollector:
 
                                     decoded_name = rot13_decode(value_name)
 
-                                    # Categorize application and generate smart description
                                     category = self._categorize_application(decoded_name)
                                     smart_description = self._generate_smart_description(
                                         decoded_name, category, execution_count, last_execution_time

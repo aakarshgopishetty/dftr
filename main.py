@@ -2,18 +2,18 @@ import csv
 import ctypes
 from datetime import datetime
 
-from collectors.filesystem.recent_files import RecentFilesCollector
-from collectors.applications.registry_mru import RegistryMRUCollector
-from collectors.applications.userassist import UserAssistCollector
-from collectors.system.prefetch import PrefetchCollector
-from collectors.system.clipboard import ClipboardCollector
-from collectors.filesystem.file_metadata import FileMetadataCollector
-from collectors.browser.browser_downloads import BrowserDownloadsCollector
-from collectors.browser.firefox_downloads import FirefoxDownloadsCollector
-from collectors.filesystem.jump_lists import JumpListsCollector
-from collectors.browser.browser_history import BrowserHistoryCollector
+from collectors.recent_files.recent_files import RecentFilesCollector
+from collectors.app_usage.registry_mru import RegistryMRUCollector
+from collectors.app_usage.userassist import UserAssistCollector
+from collectors.app_usage.prefetch import PrefetchCollector
 
-from analysis.non_browser_downloads import NonBrowserDownloadAnalyzer
+from collectors.usb_logs.usb import USBCollector
+from collectors.file_metadata.file_metadata import FileMetadataCollector
+from collectors.downloads.browser_downloads import BrowserDownloadsCollector
+from collectors.recent_files.jump_lists import JumpListsCollector
+from collectors.browser_history.browser_history import BrowserHistoryCollector
+
+from collectors.downloads.non_browser_downloads import NonBrowserDownloadAnalyzer
 
 from core.correlator import correlate_events
 from core.event import EventType
@@ -110,10 +110,9 @@ def main():
         UserAssistCollector(),
         FileMetadataCollector(),
         BrowserDownloadsCollector(),
-        FirefoxDownloadsCollector(),
         JumpListsCollector(),
         BrowserHistoryCollector(),
-        ClipboardCollector()
+        USBCollector()
     ]
 
     if enable_prefetch:
@@ -147,7 +146,6 @@ def main():
 
     end_time = parse_datetime(end_input) if end_input else None
 
-    # Run non-browser download analysis with time filter
     analyzer = NonBrowserDownloadAnalyzer()
     inferred_events = analyzer.analyze(all_events, start_time, end_time)
     if inferred_events:
