@@ -12,6 +12,7 @@ from collectors.file_metadata.file_metadata import FileMetadataCollector
 from collectors.downloads.browser_downloads import BrowserDownloadsCollector
 from collectors.recent_files.jump_lists import JumpListsCollector
 from collectors.browser_history.browser_history import BrowserHistoryCollector
+from collectors.clipboard.clipboard import ClipboardCollector
 
 from collectors.downloads.non_browser_downloads import NonBrowserDownloadAnalyzer
 
@@ -72,11 +73,11 @@ def main():
     print("Select operation mode:")
     print("1. Standard Mode (No admin privileges required)")
     print("   - Collects user-accessible artifacts")
-    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History")
+    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History, Clipboard")
     print()
     print("2. Enhanced Mode (Requires administrator privileges)")
     print("   - Includes all Standard Mode artifacts")
-    print("   - Plus system-level artifacts (Prefetch)")
+    print("   - Plus system-level artifacts (Prefetch) and historical clipboard data")
     print()
 
     while True:
@@ -112,6 +113,7 @@ def main():
         BrowserDownloadsCollector(),
         JumpListsCollector(),
         BrowserHistoryCollector(),
+        ClipboardCollector(),
         USBCollector()
     ]
 
