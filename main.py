@@ -13,6 +13,7 @@ from collectors.downloads.browser_downloads import BrowserDownloadsCollector
 from collectors.recent_files.jump_lists import JumpListsCollector
 from collectors.browser_history.browser_history import BrowserHistoryCollector
 from collectors.clipboard.clipboard import ClipboardCollector
+from collectors.startup_shutdown_logs.startup_shutdown_logs import StartupShutdownLogsCollector
 
 from collectors.downloads.non_browser_downloads import NonBrowserDownloadAnalyzer
 
@@ -73,7 +74,7 @@ def main():
     print("Select operation mode:")
     print("1. Standard Mode (No admin privileges required)")
     print("   - Collects user-accessible artifacts")
-    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History, Clipboard")
+    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History, Clipboard, Startup/Shutdown Logs")
     print()
     print("2. Enhanced Mode (Requires administrator privileges)")
     print("   - Includes all Standard Mode artifacts")
@@ -105,27 +106,67 @@ def main():
     print(f"Features: Cross-artifact correlation, confidence scoring, user/system activity detection")
     print(f"Mode: {mode_name}")
 
-    collectors = [
-        RecentFilesCollector(),
-        RegistryMRUCollector(),
-        UserAssistCollector(),
-        FileMetadataCollector(),
-        BrowserDownloadsCollector(),
-        JumpListsCollector(),
-        BrowserHistoryCollector(),
-        ClipboardCollector(),
-        USBCollector()
+    collectors = []
+    failed_collectors = []
+
+    # Initialize collectors with error handling
+    collector_classes = [
+        (RecentFilesCollector, "Recent Files"),
+        (RegistryMRUCollector, "Registry MRU"),
+        (UserAssistCollector, "UserAssist"),
+        (FileMetadataCollector, "File Metadata"),
+        (BrowserDownloadsCollector, "Browser Downloads"),
+        (JumpListsCollector, "Jump Lists"),
+        (BrowserHistoryCollector, "Browser History"),
+        (ClipboardCollector, "Clipboard"),
+        (USBCollector, "USB"),
+        (StartupShutdownLogsCollector, "Startup/Shutdown Logs")
     ]
 
+    for collector_class, name in collector_classes:
+        try:
+            collector = collector_class()
+            collectors.append(collector)
+            print(f"✓ {name} collector initialized")
+        except Exception as e:
+            print(f"⚠ Failed to initialize {name} collector: {e}")
+            failed_collectors.append(name)
+            continue
+
     if enable_prefetch:
-        collectors.append(PrefetchCollector())
+        try:
+            collectors.append(PrefetchCollector())
+            print("✓ Prefetch collector initialized")
+        except Exception as e:
+            print(f"⚠ Failed to initialize Prefetch collector: {e}")
+            failed_collectors.append("Prefetch")
+
+    if failed_collectors:
+        print(f"\n⚠ Warning: {len(failed_collectors)} collectors failed to initialize: {', '.join(failed_collectors)}")
+        print("   The tool will continue with available collectors.")
 
     collector_names = [type(c).__name__.replace('Collector', '') for c in collectors]
-    print(f"Collecting from: {', '.join(collector_names)}")
+    print(f"\nCollecting from: {', '.join(collector_names)}")
 
     all_events = []
+    collection_errors = []
+
     for collector in collectors:
-        all_events.extend(collector.collect())
+        collector_name = type(collector).__name__.replace('Collector', '')
+        try:
+            events = collector.collect()
+            all_events.extend(events)
+            print(f"✓ {collector_name}: {len(events)} events collected")
+        except Exception as e:
+            error_msg = f"Failed to collect from {collector_name}: {e}"
+            print(f"✗ {error_msg}")
+            collection_errors.append(error_msg)
+            continue
+
+    if collection_errors:
+        print(f"\n⚠ Warning: {len(collection_errors)} collection errors occurred.")
+        print("   Check the error messages above for details.")
+        print("   The tool will continue with successfully collected events.")
 
     print(f"\nCollected {len(all_events)} total events")
 
@@ -137,30 +178,69 @@ def main():
 
     all_events = valid_events
 
-    all_events = correlate_events(all_events)
+    # Correlation with error handling
+    try:
+        all_events = correlate_events(all_events)
+        print("✓ Event correlation completed")
+    except Exception as e:
+        print(f"⚠ Warning: Event correlation failed: {e}")
+        print("   Continuing without correlation...")
 
     print("\nFilter timeline by time range (optional)")
 
     from datetime import timedelta
-    default_start = datetime.now() - timedelta(days=7)
+    # Use current system time for default filtering
+    reasonable_current_time = datetime.now()
+    default_start = reasonable_current_time - timedelta(days=7)
 
-    start_input = input(f"Start time (YYYY-MM-DD HH:MM) or Enter for last 7 days: ").strip()
-    end_input = input("End time (YYYY-MM-DD HH:MM) or Enter to skip: ").strip()
-    include_unknown = input("Include events with UNKNOWN time? (y/n): ").lower() == "y"
+    # Input validation with error handling
+    try:
+        start_input = input(f"Start time (YYYY-MM-DD HH:MM) or Enter for last 7 days: ").strip()
+        end_input = input("End time (YYYY-MM-DD HH:MM) or Enter to skip: ").strip()
+        include_unknown_input = input("Include events with UNKNOWN time? (y/n): ").strip().lower()
+
+        # Validate include_unknown input
+        if include_unknown_input not in ['y', 'n', 'yes', 'no']:
+            print("⚠ Invalid input for UNKNOWN times. Defaulting to 'yes'.")
+            include_unknown = True
+        else:
+            include_unknown = include_unknown_input.startswith('y')
+
+    except KeyboardInterrupt:
+        print("\n\n⚠ Operation cancelled by user.")
+        return
+    except Exception as e:
+        print(f"⚠ Error during input: {e}")
+        print("   Using default values...")
+        start_input = ""
+        end_input = ""
+        include_unknown = True
 
     if not start_input:
         start_time = default_start
         print(f"Using default start time: {start_time.strftime('%Y-%m-%d %H:%M')}")
     else:
         start_time = parse_datetime(start_input)
+        if start_time is None:
+            print(f"⚠ Invalid start time format. Using default.")
+            start_time = default_start
 
     end_time = parse_datetime(end_input) if end_input else None
+    if end_input and end_time is None:
+        print(f"⚠ Invalid end time format. Ignoring end time.")
 
-    analyzer = NonBrowserDownloadAnalyzer()
-    inferred_events = analyzer.analyze(all_events, start_time, end_time)
-    if inferred_events:
-        all_events.extend(inferred_events)
-        print(f"Added {len(inferred_events)} inferred non-browser download events")
+    # Non-browser download analysis with error handling
+    try:
+        analyzer = NonBrowserDownloadAnalyzer()
+        inferred_events = analyzer.analyze(all_events, start_time, end_time)
+        if inferred_events:
+            all_events.extend(inferred_events)
+            print(f"✓ Added {len(inferred_events)} inferred non-browser download events")
+        else:
+            print("✓ Non-browser download analysis completed (no new events)")
+    except Exception as e:
+        print(f"⚠ Warning: Non-browser download analysis failed: {e}")
+        print("   Continuing without inferred events...")
 
     display_events = list(all_events)
 
@@ -212,4 +292,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n⚠ Program interrupted by user.")
+    except Exception as e:
+        print(f"\n✗ Unexpected error: {e}")
+        print("   Please report this error for debugging.")
+        import traceback
+        traceback.print_exc()

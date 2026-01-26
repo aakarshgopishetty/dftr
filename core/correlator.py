@@ -1,8 +1,47 @@
 from datetime import datetime, timedelta
 from collections import defaultdict
 from core.event import EventType, Confidence
+import hashlib
 
 TIME_WINDOW = timedelta(minutes=5)
+
+def generate_event_hash(event):
+    """Generate a hash for event deduplication based on key attributes."""
+    key_components = [
+        str(event.event_type.value if event.event_type else 'UNKNOWN'),
+        str(event.object or ''),
+        str(event.description or ''),
+        str(event.source or ''),
+        str(event.sort_time.isoformat() if event.sort_time else 'UNKNOWN')
+    ]
+    key_string = '|'.join(key_components)
+    return hashlib.md5(key_string.encode('utf-8')).hexdigest()
+
+def deduplicate_events(events):
+    """Remove duplicate events based on content hash, keeping the one with highest confidence."""
+    seen_hashes = {}
+    deduplicated = []
+
+    for event in events:
+        event_hash = generate_event_hash(event)
+
+        if event_hash not in seen_hashes:
+            seen_hashes[event_hash] = event
+        else:
+            existing = seen_hashes[event_hash]
+            # Keep the event with higher confidence, or the more recent one if confidence is equal
+            if (event.confidence.value > existing.confidence.value or
+                (event.confidence.value == existing.confidence.value and
+                 (event.sort_time or datetime.min) > (existing.sort_time or datetime.min))):
+                seen_hashes[event_hash] = event
+
+    deduplicated = list(seen_hashes.values())
+    duplicate_count = len(events) - len(deduplicated)
+
+    if duplicate_count > 0:
+        print(f"Correlator: Removed {duplicate_count} duplicate events")
+
+    return deduplicated
 
 def normalize_program_name(name):
     if not name:

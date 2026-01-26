@@ -11,6 +11,35 @@ from core.event import Event, EventType, Confidence
 
 class BrowserHistoryCollector:
 
+    def _is_relevant_url(self, url):
+        """Filter out browser internal and irrelevant URLs."""
+        if not url:
+            return False
+
+        url_lower = url.lower()
+
+        # Filter out browser internal URLs
+        irrelevant_prefixes = [
+            'chrome://', 'edge://', 'about:', 'data:', 'blob:', 'file://',
+            'chrome-extension://', 'moz-extension://', 'opera://'
+        ]
+
+        for prefix in irrelevant_prefixes:
+            if url_lower.startswith(prefix):
+                return False
+
+        # Filter out common tracking/analytics domains that don't provide user intent
+        tracking_domains = [
+            'google-analytics.com', 'googletagmanager.com', 'doubleclick.net',
+            'facebook.com/tr', 'connect.facebook.net', 'googlesyndication.com'
+        ]
+
+        for domain in tracking_domains:
+            if domain in url_lower:
+                return False
+
+        return True
+
     def __init__(self):
         self.source = "Browser History"
 
@@ -18,8 +47,11 @@ class BrowserHistoryCollector:
         """Convert Chrome timestamp (microseconds since 1601-01-01) to datetime."""
         if chrome_time is None or chrome_time == 0:
             return None
+        # Chrome stores timestamps as microseconds since 1601-01-01
+        # Convert to seconds first, then add to base time
+        seconds_since_1601 = chrome_time / 1000000.0
         base_time = datetime(1601, 1, 1)
-        return base_time + timedelta(microseconds=chrome_time)
+        return base_time + timedelta(seconds=seconds_since_1601)
 
     def _firefox_time_to_datetime(self, firefox_time):
         """Convert Firefox timestamp (microseconds since 1970-01-01) to datetime."""
@@ -104,6 +136,9 @@ class BrowserHistoryCollector:
 
                 browser_events = 0
                 for url, title, visit_count, last_visit_time in cursor.fetchall():
+                    if not self._is_relevant_url(url):
+                        continue
+
                     visit_dt = self._chrome_time_to_datetime(last_visit_time)
                     if not visit_dt:
                         continue
@@ -149,6 +184,9 @@ class BrowserHistoryCollector:
 
                 firefox_events = 0
                 for url, title, visit_date in cursor.fetchall():
+                    if not self._is_relevant_url(url):
+                        continue
+
                     visit_dt = self._firefox_time_to_datetime(visit_date)
                     if not visit_dt:
                         continue
