@@ -75,6 +75,14 @@ def calculate_confidence(event, related_events):
         return Confidence.LOW
 
 def correlate_events(events):
+    valid_events = [event for event in events if event.is_temporally_valid()]
+    invalid_count = len(events) - len(valid_events)
+
+    if invalid_count > 0:
+        print(f"Correlator: Filtered out {invalid_count} temporally invalid events")
+
+    events = valid_events
+
     name_groups = defaultdict(list)
     time_groups = defaultdict(list)
 

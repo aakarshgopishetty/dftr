@@ -1,6 +1,8 @@
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
+import time
+from .config import TIME_VALIDATION_CONFIG
 
 
 class EventType(Enum):
@@ -47,6 +49,26 @@ class Event:
     @property
     def sort_time(self) -> Optional[datetime]:
         return self.time_end or self.time_start
+
+    def is_temporally_valid(self) -> bool:
+        """
+        Validates that event timestamps are in the past relative to current system time.
+        Uses configuration settings for strictness level.
+        Returns True if all timestamps are valid (past events), False otherwise.
+        """
+        current_time = datetime.now()
+
+        max_future_time = current_time
+        if not TIME_VALIDATION_CONFIG['strict_mode']:
+            max_future_time = current_time + timedelta(minutes=TIME_VALIDATION_CONFIG['max_future_drift_minutes'])
+
+        if self.time_start and self.time_start > max_future_time:
+            return False
+
+        if self.time_end and self.time_end > max_future_time:
+            return False
+
+        return True
 
     def __str__(self):
         start = (

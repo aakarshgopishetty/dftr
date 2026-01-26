@@ -30,37 +30,30 @@ class UserAssistCollector:
         """Categorize application based on executable name."""
         app_lower = app_name.lower()
 
-        # Browser applications
         browsers = ['chrome.exe', 'msedge.exe', 'firefox.exe', 'brave.exe', 'opera.exe', 'iexplore.exe']
         if any(browser in app_lower for browser in browsers):
             return "Browser"
 
-        # Messaging applications
         messaging = ['whatsapp.exe', 'telegram.exe', 'skype.exe', 'teams.exe', 'discord.exe', 'slack.exe', 'zoom.exe']
         if any(msg in app_lower for msg in messaging):
             return "Messaging"
 
-        # Cloud storage applications
         cloud = ['onedrive.exe', 'dropbox.exe', 'googledrive.exe', 'icloud.exe']
         if any(cld in app_lower for cld in cloud):
             return "Cloud"
 
-        # Office applications
         office = ['winword.exe', 'excel.exe', 'powerpnt.exe', 'outlook.exe', 'wordpad.exe', 'notepad.exe']
         if any(off in app_lower for off in office):
             return "Office"
 
-        # Media applications
         media = ['vlc.exe', 'wmplayer.exe', 'photos.exe', 'mspaint.exe', 'snippingtool.exe']
         if any(med in app_lower for med in media):
             return "Media"
 
-        # System applications
         system = ['explorer.exe', 'cmd.exe', 'powershell.exe', 'taskmgr.exe', 'control.exe']
         if any(sys in app_lower for sys in system):
             return "System"
 
-        # Development tools
         dev = ['code.exe', 'devenv.exe', 'python.exe', 'java.exe', 'node.exe']
         if any(d in app_lower for d in dev):
             return "Development"

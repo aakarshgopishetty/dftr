@@ -92,7 +92,7 @@ def main():
     if mode_input == "2":
         if not is_admin():
             print("\n[!] Enhanced mode selected, but administrator privileges not detected.")
-            print("   Please re-run the tool as administrator (Right-click → Run as administrator)")
+            print("   Please re-run the tool as administrator (Right-click -> Run as administrator)")
             return
         else:
             print("\n[+] Running in Enhanced (Administrator) Mode")
@@ -128,6 +128,14 @@ def main():
         all_events.extend(collector.collect())
 
     print(f"\nCollected {len(all_events)} total events")
+
+    valid_events = [event for event in all_events if event.is_temporally_valid()]
+    future_events_count = len(all_events) - len(valid_events)
+
+    if future_events_count > 0:
+        print(f"Filtered out {future_events_count} future events (maintaining forensic integrity)")
+
+    all_events = valid_events
 
     all_events = correlate_events(all_events)
 
