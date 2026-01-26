@@ -21,18 +21,53 @@ class StartupShutdownLogsCollector:
         self.source = "Windows Event Log"
 
     def _evt_time_to_datetime(self, evt_time):
-        """Safely convert Windows event time to datetime."""
+        """Safely convert Windows event time to datetime with high precision."""
         try:
             if evt_time is None:
                 return None
 
-            # Already datetime
+            # Already datetime - return as-is (most accurate)
             if isinstance(evt_time, datetime):
                 return evt_time
 
-            # pywintypes.Time behaves like datetime
+            # pywintypes.Time - use direct conversion
             try:
-                return datetime.fromtimestamp(int(evt_time))
+                # pywintypes.Time objects can be converted directly to datetime
+                if hasattr(evt_time, 'Format'):
+                    # Try to get the datetime representation
+                    dt_str = str(evt_time)
+                    # Parse the string representation if it's in a standard format
+                    try:
+                        return datetime.strptime(dt_str, '%a %b %d %H:%M:%S %Y')
+                    except:
+                        pass
+                # Alternative: use the underlying time tuple
+                if hasattr(evt_time, 'timetuple'):
+                    return datetime(*evt_time.timetuple()[:6])
+            except:
+                pass
+
+            # Try as Unix timestamp (most common for recent events)
+            try:
+                timestamp = float(evt_time)
+                # Check if it's a reasonable Unix timestamp (after 2000, before 2030)
+                if 946684800 < timestamp < 1893456000:  # 2000-01-01 to 2030-01-01
+                    return datetime.fromtimestamp(timestamp)
+            except:
+                pass
+
+            # Try as Windows FILETIME (100-nanosecond intervals since 1601-01-01)
+            try:
+                filetime = int(evt_time)
+                # FILETIME values are typically very large numbers
+                if filetime > 116444736000000000:  # Roughly year 2000 in FILETIME
+                    base_time = datetime(1601, 1, 1)
+                    # FILETIME is in 100-nanosecond intervals
+                    seconds = filetime / 10000000.0
+                    result = base_time + timedelta(seconds=seconds)
+                    # Validate the result is reasonable (not in future)
+                    if result < datetime.now() + timedelta(hours=1):
+                        return result
             except:
                 pass
 

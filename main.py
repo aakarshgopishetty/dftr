@@ -14,6 +14,7 @@ from collectors.recent_files.jump_lists import JumpListsCollector
 from collectors.browser_history.browser_history import BrowserHistoryCollector
 from collectors.clipboard.clipboard import ClipboardCollector
 from collectors.startup_shutdown_logs.startup_shutdown_logs import StartupShutdownLogsCollector
+from collectors.temp_files.temp_files import TempFilesCollector
 
 from collectors.downloads.non_browser_downloads import NonBrowserDownloadAnalyzer
 
@@ -74,7 +75,7 @@ def main():
     print("Select operation mode:")
     print("1. Standard Mode (No admin privileges required)")
     print("   - Collects user-accessible artifacts")
-    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History, Clipboard, Startup/Shutdown Logs")
+    print("   - Recent Files, Registry MRU, UserAssist, File Metadata, Browser Downloads, Jump Lists, Browser History, Clipboard, Startup/Shutdown Logs, Temp Files")
     print()
     print("2. Enhanced Mode (Requires administrator privileges)")
     print("   - Includes all Standard Mode artifacts")
@@ -120,7 +121,8 @@ def main():
         (BrowserHistoryCollector, "Browser History"),
         (ClipboardCollector, "Clipboard"),
         (USBCollector, "USB"),
-        (StartupShutdownLogsCollector, "Startup/Shutdown Logs")
+        (StartupShutdownLogsCollector, "Startup/Shutdown Logs"),
+        (TempFilesCollector, "Temp Files")
     ]
 
     for collector_class, name in collector_classes:
@@ -269,6 +271,28 @@ def main():
     print(f"  End:   {end_time if end_time else 'Not set'}")
     print(f"  Include UNKNOWN times: {include_unknown}")
     print(f"  Events after filtering: {len(display_events)}\n")
+
+    # Option to include/exclude temp files from output
+    try:
+        include_temp_files_input = input("Include temporary files in timeline output? (y/n): ").strip().lower()
+        if include_temp_files_input not in ['y', 'n', 'yes', 'no']:
+            print("⚠ Invalid input. Defaulting to 'yes'.")
+            include_temp_files = True
+        else:
+            include_temp_files = include_temp_files_input.startswith('y')
+    except KeyboardInterrupt:
+        print("\n\n⚠ Operation cancelled by user.")
+        return
+    except Exception as e:
+        print(f"⚠ Error during input: {e}")
+        print("   Defaulting to include temp files...")
+        include_temp_files = True
+
+    if not include_temp_files:
+        display_events = [event for event in display_events if event.source != "Temporary Files"]
+        print(f"Excluded temporary files. Events after filtering: {len(display_events)}\n")
+    else:
+        print("Including temporary files in output.\n")
 
     display_events.sort(key=lambda e: e.sort_time or datetime.min, reverse=True)
 
