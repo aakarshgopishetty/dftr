@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFTR - Digital Forensic Timeline Reconstructor</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e4e4e7;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .wizard-container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Step Indicator */
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 40px;
+            gap: 0;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .step.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .step.completed {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .step-number {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .step.active .step-number {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .step.completed .step-number {
+            background: #22c55e;
+            color: white;
+        }
+
+        .step-connector {
+            width: 60px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0 10px;
+        }
+
+        .step-connector.active {
+            background: linear-gradient(90deg, #22c55e, #667eea);
+        }
+
+        /* Scene 1: Welcome */
+        .welcome-scene {
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .logo-container {
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 3rem;
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .app-title {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -1px;
+        }
+
+        .app-subtitle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .time-input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 500px;
+            margin: 0 auto 30px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-label {
+            display: block;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .time-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+        }
+
+        .time-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Scene 2: Access Selection */
+        .access-scene {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .scene-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .scene-subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 40px;
+        }
+
+        .access-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .access-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .access-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: translateY(-5px);
+        }
+
+        .access-card.selected {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+            border-color: #667eea;
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .access-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2.5rem;
+        }
+
+        .access-card.admin .access-icon {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        }
+
+        .access-card.non-admin .access-icon {
+            background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+        }
+
+        .access-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .access-description {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .access-features {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .access-features li {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        /* Scene 3: Dashboard */
+        .dashboard-scene {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .dashboard-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .mode-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .filters-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filters-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .filter-group label {
+            display: block;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-group select option {
+            background: #1a1a2e;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .checkbox-item input {
+            accent-color: #667eea;
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-item span {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn-sm {
+            padding: 12px 24px;
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 30px;
+            height: 300px;
+        }
+
+        .events-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .events-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .events-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .events-count {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .events-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .event-item {
+            padding: 18px 25px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .event-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .event-item:last-child {
+            border-bottom: none;
+        }
+
+        .event-time {
+            font-weight: 600;
+            color: #a5b4fc;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+        }
+
+        .event-description {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+
+        .event-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .meta-tag {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .meta-tag.type {
+            background: rgba(102, 126, 234, 0.2);
+            color: #a5b4fc;
+        }
+
+        .meta-tag.source {
+            background: rgba(6, 182, 212, 0.2);
+            color: #22d3ee;
+        }
+
+        .meta-tag.confidence {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+
+        .meta-tag.correlated {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-text {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .wizard-container {
+                padding: 25px;
+            }
+
+            .step-indicator {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .step-connector {
+                width: 2px;
+                height: 30px;
+                margin: 0;
+            }
+
+            .step {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+            }
+
+            .app-title {
+                font-size: 2rem;
+            }
+
+            .time-input-group {
+                grid-template-columns: 1fr;
+            }
+
+            .access-options {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function App() {
+            const [currentStep, setCurrentStep] = useState(1);
+            const [timeSlot, setTimeSlot] = useState({ start: '', end: '' });
+            const [accessMode, setAccessMode] = useState(null);
+            const [events, setEvents] = useState([]);
+            const [filteredEvents, setFilteredEvents] = useState([]);
+            const [loading, setLoading] = useState(false);
+            // Predefined artifact categories and their corresponding sources
+            const artifactCategories = {
+                'Browser History': ['Browser History', 'Chrome History', 'Edge History', 'Brave History', 'Firefox History', 'Opera History'],
+                'File Metadata': ['File Metadata'],
+                'Recent Files': ['Recent Files', 'Jump Lists'],
+                'Downloads': ['Browser Downloads', 'Chrome Downloads', 'Edge Downloads', 'Brave Downloads', 'Firefox Downloads', 'Non-Browser Downloads'],
+                'Clipboard': ['Clipboard', 'Clipboard History'],
+                'USB Logs': ['USB'],
+                'App Usage': ['Registry MRU', 'UserAssist', 'Prefetch'],
+                'Startup/Shutdown Logs': ['Startup/Shutdown Logs'],
+                'Temp Files': ['Temporary Files']
+            };
+
+            const [filters, setFilters] = useState({
+                sources: [],
+                eventTypes: [],
+                confidences: [],
+                correlated: null,  // null = all, true = correlated only, false = non-correlated only
+                artifactCategories: []  // Selected artifact categories
+            });
+            const chartRef = useRef(null);
+            const chartInstanceRef = useRef(null);
+
+            // Get today's date for default values
+            const today = new Date().toISOString().split('T')[0];
+            const defaultStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            const handleTimeSlotSubmit = () => {
+                if (timeSlot.start || timeSlot.end) {
+                    setCurrentStep(2);
+                }
+            };
+
+            const handleAccessSelect = (mode) => {
+                setAccessMode(mode);
+            };
+
+            const handleProceedToDashboard = async () => {
+                if (accessMode) {
+                    setCurrentStep(3);
+                    await fetchEvents();
+                }
+            };
+
+            const handleBack = () => {
+                if (currentStep > 1) {
+                    setCurrentStep(currentStep - 1);
+                }
+            };
+
+const fetchEvents = async () => {
+                setLoading(true);
+                try {
+                    const queryParams = new URLSearchParams();
+                    
+                    // Date filters
+                    if (timeSlot.start) {
+                        queryParams.append('start_date', timeSlot.start + ':00');
+                    }
+                    if (timeSlot.end) {
+                        queryParams.append('end_date', timeSlot.end + ':00');
+                    }
+
+                    // Send filters to backend - use exact parameter names backend expects
+                    if (filters.sources.length > 0) {
+                        queryParams.append('sources', filters.sources.join(','));
+                    }
+                    if (filters.eventTypes.length > 0) {
+                        queryParams.append('eventtypes', filters.eventTypes.join(','));
+                    }
+                    if (filters.confidences.length > 0) {
+                        queryParams.append('confidences', filters.confidences.join(','));
+                    }
+                    
+                    const mode = accessMode === 'admin' ? 'advanced' : 'standard';
+                    
+                    const response = await fetch(`/api/events?${queryParams}`);
+                    const data = await response.json();
+                    setEvents(data.events || []);
+                } catch (error) {
+                    console.error('Error fetching events:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const collectEvents = async () => {
+                setLoading(true);
+                try {
+                    const mode = accessMode === 'admin' ? 'advanced' : 'standard';
+                    await fetch('/api/collect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode })
+                    });
+                    await fetchEvents();
+                } catch (error) {
+                    console.error('Error collecting events:', error);
+                    setLoading(false);
+                }
+            };
+
+useEffect(() => {
+                // Apply local filters on top of API filters
+                let filtered = [...events];
+
+                // Correlated filter (only applied locally since API doesn't have this param)
+                if (filters.correlated === true) {
+                    filtered = filtered.filter(e => e.correlated === true);
+                } else if (filters.correlated === false) {
+                    filtered = filtered.filter(e => e.correlated === false);
+                }
+
+                setFilteredEvents(filtered);
+            }, [events, filters]);
+
+            useEffect(() => {
+                if (currentStep === 3 && filteredEvents.length > 0) {
+                    updateChart();
+                }
+            }, [filteredEvents, currentStep]);
+
+            // Fetch events when filters change (API-level filters)
+            useEffect(() => {
+                if (currentStep === 3) {
+                    fetchEvents();
+                }
+            }, [filters.sources, filters.eventTypes, filters.confidences]);
+
+            const updateChart = () => {
+                const ctx = chartRef.current;
+                if (!ctx) return;
+
+                if (chartInstanceRef.current) {
+                    chartInstanceRef.current.destroy();
+                }
+
+                const eventCounts = {};
+                filteredEvents.forEach(event => {
+                    if (event.timestamp) {
+                        const date = new Date(event.timestamp).toISOString().split('T')[0];
+                        eventCounts[date] = (eventCounts[date] || 0) + 1;
+                    }
+                });
+
+                const labels = Object.keys(eventCounts).sort();
+                const data = labels.map(date => eventCounts[date]);
+
+                chartInstanceRef.current = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Events per Day',
+                            data: data,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e4e4e7' }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#a1a1aa' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#a1a1aa' }
+                            }
+                        }
+                    }
+                });
+            };
+
+            const handleFilterChange = (filterName, value) => {
+                setFilters(prev => ({ ...prev, [filterName]: value }));
+            };
+
+            const handleCheckboxChange = (filterName, value, checked) => {
+                setFilters(prev => ({
+                    ...prev,
+                    [filterName]: checked
+                        ? [...prev[filterName], value]
+                        : prev[filterName].filter(item => item !== value)
+                }));
+            };
+
+            const getUniqueValues = (key) => {
+                return [...new Set(events.map(e => e[key]).filter(Boolean))];
+            };
+
+            const sortedEvents = [...filteredEvents].sort((a, b) => {
+                if (!a.timestamp && !b.timestamp) return 0;
+                if (!a.timestamp) return 1;
+                if (!b.timestamp) return -1;
+                return new Date(b.timestamp) - new Date(a.timestamp);
+            });
+
+            const stats = {
+                total: filteredEvents.length,
+                correlated: filteredEvents.filter(e => e.correlated).length,
+                sources: new Set(filteredEvents.map(e => e.source)).size,
+                types: new Set(filteredEvents.map(e => e.event_type)).size
+            };
+
+            return (
+                <div className="app-container">
+                    <div className="wizard-container">
+                        {/* Step Indicator */}
+                        <div className="step-indicator">
+                            <div className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+                                <span className="step-number">{currentStep > 1 ? '✓' : '1'}</span>
+                                <span>Time Slot</span>
+                            </div>
+                            <div className={`step-connector ${currentStep > 1 ? 'active' : ''}`}></div>
+                            <div className={`step ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+                                <span className="step-number">{currentStep > 2 ? '✓' : '2'}</span>
+                                <span>Access Mode</span>
+                            </div>
+                            <div className={`step-connector ${currentStep > 2 ? 'active' : ''}`}></div>
+                            <div className={`step ${currentStep >= 3 ? 'active' : ''}`}>
+                                <span className="step-number">3</span>
+                                <span>Results</span>
+                            </div>
+                        </div>
+
+                        {/* Scene 1: Time Slot Selection */}
+                        {currentStep === 1 && (
+                            <div className="welcome-scene">
+                                <div className="logo-container">
+                                    <div className="logo-icon">🔍</div>
+                                    <h1 className="app-title">DFTR Tool</h1>
+                                    <p className="app-subtitle">Digital Forensic Timeline Reconstructor</p>
+                                </div>
+
+                                <div className="time-input-group">
+                                    <div className="input-wrapper">
+                                        <label className="input-label">Start Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="time-input"
+                                            value={timeSlot.start}
+                                            onChange={(e) => setTimeSlot({ ...timeSlot, start: e.target.value })}
+                                            defaultValue={defaultStart + 'T00:00'}
+                                        />
+                                    </div>
+                                    <div className="input-wrapper">
+                                        <label className="input-label">End Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="time-input"
+                                            value={timeSlot.end}
+                                            onChange={(e) => setTimeSlot({ ...timeSlot, end: e.target.value })}
+                                            defaultValue={today + 'T23:59'}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button className="btn btn-primary" onClick={handleTimeSlotSubmit}>
+                                    Continue →
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Scene 2: Access Mode Selection */}
+                        {currentStep === 2 && (
+                            <div className="access-scene">
+                                <h2 className="scene-title">Select Access Mode</h2>
+                                <p className="scene-subtitle">Choose the level of access for forensic analysis</p>
+
+                                <div className="access-options">
+                                    <div 
+                                        className={`access-card non-admin ${accessMode === 'non-admin' ? 'selected' : ''}`}
+                                        onClick={() => handleAccessSelect('non-admin')}
+                                    >
+                                        <div className="access-icon">👤</div>
+                                        <h3 className="access-title">Non-Admin Access</h3>
+                                        <p className="access-description">Standard user mode for basic forensic analysis</p>
+                                        <ul className="access-features">
+                                            <li>✓ Recent Files analysis</li>
+                                            <li>✓ Browser History</li>
+                                            <li>✓ Clipboard data</li>
+                                            <li>✓ USB device logs</li>
+                                            <li>✓ Browser Downloads</li>
+                                        </ul>
+                                    </div>
+
+                                    <div 
+                                        className={`access-card admin ${accessMode === 'admin' ? 'selected' : ''}`}
+                                        onClick={() => handleAccessSelect('admin')}
+                                    >
+                                        <div className="access-icon">⚡</div>
+                                        <h3 className="access-title">Admin Access</h3>
+                                        <p className="access-description">Full administrative privileges for comprehensive analysis</p>
+                                        <ul className="access-features">
+                                            <li>✓ All Non-Admin features</li>
+                                            <li>✓ Prefetch analysis</li>
+                                            <li>✓ System registry deep scan</li>
+                                            <li>✓ Complete timeline correlation</li>
+                                            <li>✓ Advanced file recovery</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="action-row">
+                                    <button className="btn btn-secondary" onClick={handleBack}>
+                                        ← Back
+                                    </button>
+                                    <button 
+                                        className="btn btn-primary" 
+                                        onClick={handleProceedToDashboard}
+                                        disabled={!accessMode}
+                                    >
+                                        Proceed to Dashboard →
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Scene 3: Dashboard */}
+                        {currentStep === 3 && (
+                            <div className="dashboard-scene">
+                                <div className="dashboard-header">
+                                    <h2 className="dashboard-title">📊 Forensic Analysis Dashboard</h2>
+                                    <span className="mode-badge">
+                                        {accessMode === 'admin' ? '⚡ Admin Mode' : '👤 Standard Mode'}
+                                    </span>
+                                </div>
+
+                                <div className="stats-grid">
+                                    <div className="stat-card">
+                                        <div className="stat-number">{stats.total}</div>
+                                        <div className="stat-label">Total Events</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-number">{stats.correlated}</div>
+                                        <div className="stat-label">Correlated</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-number">{stats.sources}</div>
+                                        <div className="stat-label">Data Sources</div>
+                                    </div>
+                                    <div className="stat-card">
+                                        <div className="stat-number">{stats.types}</div>
+                                        <div className="stat-label">Event Types</div>
+                                    </div>
+                                </div>
+
+                                <div className="filters-card">
+                                    <div className="filters-header">
+                                        <h3 className="filters-title">🔍 Filters</h3>
+                                        <div className="action-buttons">
+                                            <button className="btn btn-primary btn-sm" onClick={collectEvents} disabled={loading}>
+                                                {loading ? '⏳ Collecting...' : '📊 Collect Events'}
+                                            </button>
+                                            <button className="btn btn-secondary btn-sm" onClick={fetchEvents}>
+                                                🔄 Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="filters-grid">
+                                        <div className="filter-group">
+                                            <label>Data Sources</label>
+                                            <div className="checkbox-grid">
+                                                {getUniqueValues('source').map(source => (
+                                                    <label key={source} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={filters.sources.includes(source)}
+                                                            onChange={(e) => handleCheckboxChange('sources', source, e.target.checked)}
+                                                        />
+                                                        <span>{source}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="filter-group">
+                                            <label>Event Types</label>
+                                            <div className="checkbox-grid">
+                                                {getUniqueValues('event_type').map(type => (
+                                                    <label key={type} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={filters.eventTypes.includes(type)}
+                                                            onChange={(e) => handleCheckboxChange('eventTypes', type, e.target.checked)}
+                                                        />
+                                                        <span>{type}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+<div className="filter-group">
+                                            <label>Confidence Levels</label>
+                                            <div className="checkbox-grid">
+                                                {['HIGH', 'MEDIUM', 'LOW'].map(conf => (
+                                                    <label key={conf} className="checkbox-item">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={filters.confidences.includes(conf)}
+                                                            onChange={(e) => handleCheckboxChange('confidences', conf, e.target.checked)}
+                                                        />
+                                                        <span>{conf}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="filter-group">
+                                            <label>Correlation Status</label>
+                                            <div className="checkbox-grid" style={{ gridTemplateColumns: '1fr' }}>
+                                                <label className="checkbox-item">
+                                                    <input
+                                                        type="radio"
+                                                        name="correlated"
+                                                        checked={filters.correlated === true}
+                                                        onChange={() => setFilters(prev => ({ ...prev, correlated: true }))}
+                                                    />
+                                                    <span>Correlated Only</span>
+                                                </label>
+                                                <label className="checkbox-item">
+                                                    <input
+                                                        type="radio"
+                                                        name="correlated"
+                                                        checked={filters.correlated === false}
+                                                        onChange={() => setFilters(prev => ({ ...prev, correlated: false }))}
+                                                    />
+                                                    <span>Non-Correlated Only</span>
+                                                </label>
+                                                <label className="checkbox-item">
+                                                    <input
+                                                        type="radio"
+                                                        name="correlated"
+                                                        checked={filters.correlated === null}
+                                                        onChange={() => setFilters(prev => ({ ...prev, correlated: null }))}
+                                                    />
+                                                    <span>Show All</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="chart-container">
+                                    <canvas ref={chartRef}></canvas>
+                                </div>
+
+                                <div className="events-container">
+                                    <div className="events-header">
+                                        <h3 className="events-title">📋 Forensic Events</h3>
+                                        <span className="events-count">{filteredEvents.length} events found</span>
+                                    </div>
+                                    <div className="events-list">
+                                        {loading ? (
+                                            <div className="loading">
+                                                <div className="loading-spinner"></div>
+                                                <p>Loading forensic events...</p>
+                                            </div>
+                                        ) : sortedEvents.length === 0 ? (
+                                            <div className="empty-state">
+                                                <div className="empty-icon">📂</div>
+                                                <h3 className="empty-title">No Events Found</h3>
+                                                <p className="empty-text">Try adjusting your filters or collect new events</p>
+                                            </div>
+                                        ) : (
+                                            sortedEvents.map((event, index) => (
+                                                <div key={index} className="event-item">
+                                                    <div className="event-time">
+                                                        {event.timestamp ? new Date(event.timestamp).toLocaleString() : 'UNKNOWN TIME'}
+                                                    </div>
+                                                    <div className="event-description">
+                                                        {event.description || `${event.subject} - ${event.object}`}
+                                                    </div>
+                                                    <div className="event-meta">
+                                                        <span className="meta-tag type">{event.event_type || 'Unknown'}</span>
+                                                        <span className="meta-tag source">{event.source}</span>
+                                                        <span className="meta-tag confidence">{event.confidence || 'N/A'}</span>
+                                                        {event.correlated && <span className="meta-tag correlated">CORRELATED</span>}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="action-row" style={{ marginTop: '30px' }}>
+                                    <button className="btn btn-secondary" onClick={handleBack}>
+                                        ← Back to Access Mode
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
