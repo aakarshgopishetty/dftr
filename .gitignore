@@ -12,6 +12,8 @@ forensic_timeline.csv
 # Test files
 test_*.py
 
+#node modules
+frontend/node_modules
 # IDE
 .vscode/
 .idea/
